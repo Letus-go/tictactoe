@@ -17,43 +17,42 @@
         <!--    </div>-->
         <div class="ticktacktoeBox">
             <div v-for="(item,index) in list" :key="index">
-                <Square @click="handleClick(index)" :value="item" />
+                <Square @click="handleClick(index)" :data="item" />
             </div>
         </div>
         <div class="ticktacktoeDone">
             <el-button type="info" round @click="repentantChess" :disabled="disabled">悔棋</el-button>
-            <el-button type="warning" round @click="reStartChess">重置</el-button>
+            <el-button type="warning" round @click="confirmChess">重置</el-button>
+            <el-button type="warning" round @click="sure">确定</el-button>
         </div>
     </div>
 
 </template>
 
 <script setup lang="ts">
-import Square from '@/views/Square.vue'
+import Square from '@/views/error/demoClass.vue'
 import {reactive, ref} from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 type SquareType = 'X' | 'O' | ''
 // const list = reactive<SquareType[]>(Array(9).fill(''))
-const list = reactive<SquareType[]>(Array(9).fill(''))
+const list = reactive<{ value:SquareType,id:number }[]>(Array(9).fill({value:'',id:-1}))
 const xIsNext = ref<boolean>(true)
 //方格是否选中
 
 const disabled=ref<boolean>(true)
 //悔棋的索引
-const repentantIndex=ref<number>()
+const repentantIndex=ref<number>(-1)
 
 
 const handleClick = (index: number) => {
-    if (list[index] || calculatingVictory(list)) return
-    disabled.value=false
     repentantIndex.value=index
-    list[index] = xIsNext.value ? 'X' : 'O'
-    xIsNext.value = !xIsNext.value
-    calculatingVictory(list)
-
+    list.forEach((item,index)=>{
+        list[index].value=''
+    })
+    list[index].value = xIsNext.value ? 'X' : 'O'
 }
-const calculatingVictory = (square:SquareType[]): string | null => {
+const calculatingVictory = (square:{value:SquareType,id:number }[]): string | null => {
     const list = [
         [0, 1, 2],
         [3, 4, 5],
@@ -73,14 +72,23 @@ const calculatingVictory = (square:SquareType[]): string | null => {
                 type: 'success',
             })
             disabled.value=true
-            return square[a]
+            return square[a].value
         }
     }
     return null
 }
-// reStartChess---重置
-const reStartChess=()=>{
-   list.forEach((item,index)=> list[index]='')
+// 重置
+const confirmChess=()=>{
+    list.forEach((item,index)=> list[index].value='')
+}
+// 确定
+const sure=()=>{
+    if ( calculatingVictory(list)) return
+    disabled.value=false
+    list[repentantIndex.value].value = xIsNext.value ? 'X' : 'O'
+    list[repentantIndex.value].id=repentantIndex.value
+    xIsNext.value = !xIsNext.value
+    calculatingVictory(list)
 }
 //悔棋
 const repentantChess=():void=>{
@@ -95,7 +103,7 @@ const repentantChess=():void=>{
     )
         .then(() => {
             if(list.find((item,index)=>index===repentantIndex.value)){
-                list[repentantIndex.value]=''
+                list[repentantIndex.value].value=''
             }
             ElMessage({
                 type: 'success',
@@ -118,13 +126,13 @@ const repentantChess=():void=>{
 
 <style scoped lang="less">
 .ticktacktoe{
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
 }
 .ticktacktoeBox {
   width: 180px;
 }
 .ticktacktoeDone{
-    margin: 10px auto;
+  margin: 10px auto;
 }
 </style>
